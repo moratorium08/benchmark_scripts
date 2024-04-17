@@ -45,6 +45,9 @@ def main():
     fail = 0
     n_no_check = 0
     n_fail_parse = 0
+    n_fail_hoice = 0
+    n_execute = 0
+    no_safety = 0
     data = sorted(data, key=cmpkey)
     for x in data:
         key = ds_iden(x['file'])
@@ -57,18 +60,34 @@ def main():
         preprocess = get_time(entries, "overall")
         parse = get_time(entries, "parse_chc")
         nparse = get_count(entries, "parse_chc")
+        pre_hoice = get_time(entries, "preprocess by hoice")
+        n_pre_hoice = get_count(entries, "preprocess by hoice")
+        safety_count = get_count(entries, "safety")
+        der_count = get_count(entries, "remove tmp var")
 
-        entries = x.get("check", {})
-        execute = get_time(entries, "execute")
+        check_entries = x.get("check", {})
+        execute = get_time(check_entries, "execute")
+        cnt_execute = get_count(check_entries, "execute")
 
-        if entries == {}:
+        if check_entries == {}:
             n_no_check += 1
-            print(x)
+            if n_pre_hoice > 0 and safety_count > 0:
+                print(x["preprocess"])
+        # 0 means, reached but not finished?
         if nparse == 0:
             n_fail_parse += 1
+        if n_pre_hoice == 0:
+            n_fail_hoice += 1
+            print(f"- {x['file']}")
+            print("  - parse_chc:", get_time(entries, "parse_chc"))
+        print(safety_count)
+        if safety_count == -1:
+            no_safety += 1
+        if cnt_execute != 1:
+            n_execute += 1
 
-        ret += f"{key}, {x['time']}, {x['result']}, {preprocess}, {parse}, {execute}\n"
-    header = "filename, time, result, ok, preprocess, parse, execute\n"
+        ret += f"{key}, {x['time']}, {x['result']}, {parse}, {pre_hoice}, {preprocess}, {execute}\n"
+    header = "filename, time, result, ok, pparse, hoice preprocess, preprocess, execute\n"
 
     with open('.'.join(filename.split('.')[:-1]) + '.csv', 'w') as f:
         f.write(header)
@@ -78,8 +97,12 @@ def main():
     print("[stat]")
     print(f"n Invalids    : {invalid} / {size}")
     print(f"Fail          : {fail} / {size}")
+    print(f"-------------  ")
     print(f"N Parse fail  : {n_fail_parse} / {size}")
-    print(f"N No Check    : {n_no_check} / {size}")
+    print(f"N Hoice Pre   : {n_fail_hoice} / {size}")
+    print(f"No Safety     : {no_safety} / {size}")
+    print(f"No Check      : {n_no_check} / {size}")
+    print(f"No Execute     : {n_execute} / {size}")
 
 
 main()
