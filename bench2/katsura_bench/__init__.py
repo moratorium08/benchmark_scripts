@@ -51,6 +51,12 @@ class Benchmarker(ABC):
     def fix_cfg(self, cfg: Config, _args) -> Config:
         return cfg
 
+    def base_dir(self) -> str:
+        """
+        Default base directory
+        """
+        return "./"
+
     def print_result(file, result):
         if result['ok']:
             print(f'{file}\t{result["result"]}')
@@ -136,7 +142,7 @@ def do_bench(bench: Benchmarker):
     parser.add_argument("list", help="benchmark target name")
     parser.add_argument("--timeout", help="timeout", default=TIMEOUT, type=int)
     parser.add_argument('--json', help="set filename in which results will be saved", default=None)
-    parser.add_argument("--basedir", help="base directory", default="./")
+    parser.add_argument("--basedir", help="base directory", default=bench.base_dir())
     parser = bench.cli_arg(parser)
     args = parser.parse_args()
 
