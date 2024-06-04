@@ -4,8 +4,8 @@ import signal
 import subprocess
 import json
 import time
+import datetime
 from abc import ABC, abstractmethod
-
 
 TIMEOUT = 10
 RETRY_COOLDOWN = 10
@@ -27,12 +27,12 @@ class Benchmarker(ABC):
     - `print_result`: print the result
     """
     @abstractmethod
-    def gen_cmd(file: str):
+    def gen_cmd(self, file: str):
         """Given a file, generate the command to run the benchmark"""
         pass
 
     @abstractmethod
-    def parse_stdout(stdout: str):
+    def parse_stdout(self, stdout: str):
         """
         Parse the output of the benchmark
 
@@ -57,11 +57,17 @@ class Benchmarker(ABC):
         """
         return "./"
 
-    def print_result(file, result):
+    def print_result(self, file, result):
         if result['ok']:
             print(f'{file}\t{result["result"]}')
         else:
             print(f'{file}\t{result["error"]}')
+    
+    def callback(self, file, result):
+        self.print_result(file, result)
+    
+    def stat(self, results):
+        pass
 
 
 class Executor:
@@ -93,12 +99,12 @@ class Executor:
                     pass
                 raise
 
-    def handle(self, file: str, parser, retry: int = 0):
+    def handle(self, file: str, retry: int = 0):
         cmd = self.bench.gen_cmd(file)
         try:
             stdout, t = self.run(cmd)
             stdout = stdout.decode('utf-8')
-            result = parser(stdout)
+            result = self.bench.parse_stdout(stdout)
             result['time'] = t
         except subprocess.TimeoutExpired:
             result = {'ok': False, 'error': 'timeout'}
@@ -107,7 +113,7 @@ class Executor:
             result['result'] = 'fail'
         if result['result'] == 'fail' and self.cfg.retry > 0:
             time.sleep(RETRY_COOLDOWN)
-            self.handle(file, parser, retry - 1)
+            self.handle(file, retry - 1)
         else:
             result['file'] = file
             result['size'] = os.path.getsize(file)
@@ -138,10 +144,14 @@ def do_bench(bench: Benchmarker):
         do_bench(bench)
     ```
     """
+    now = datetime.datetime.now()
+    default_json_file = now.strftime("%Y-%m-%d-%H%M") + ".json"
+
+
     parser = argparse.ArgumentParser()
     parser.add_argument("list", help="benchmark target name")
     parser.add_argument("--timeout", help="timeout", default=TIMEOUT, type=int)
-    parser.add_argument('--json', help="set filename in which results will be saved", default=None)
+    parser.add_argument('--json', help="set filename in which results will be saved", default=default_json_file)
     parser.add_argument("--basedir", help="base directory", default=bench.base_dir())
     parser = bench.cli_arg(parser)
     args = parser.parse_args()
@@ -163,7 +173,7 @@ def do_bench(bench: Benchmarker):
     with open(os.path.join(cfg.basedir, 'lists', cfg.list)) as f:
         files = f.read().strip('\n').split('\n')
     for file in files:
-        executor.handle(bench, cfg,  os.path.join(cfg.basedir, cfg.base, file))
+        executor.handle(os.path.join(cfg.basedir, cfg.base, file))
     bench.stat(executor.results)
     if cfg.json is not None:
         executor.save_json(cfg.json)
