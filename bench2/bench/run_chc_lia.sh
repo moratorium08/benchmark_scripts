@@ -20,6 +20,8 @@ current_date=$(date +"%Y-%m-%d-%H")
 filename="$prefix-$current_date.json"
 csvname="$prefix-$current_date.csv"
 
+mkdir -p results
+
 python3 $prefix.py --n-threads=$NTHREADS comp_LIA-nonlin  --json results/comp_LIA-nonlin-$filename --timeout $TIMEOUT
 python3 $prefix.py --n-threads=$NTHREADS comp_LIA-lin --json results/comp_LIA-lin-$filename --timeout $TIMEOUT
 
