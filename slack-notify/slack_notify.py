@@ -27,6 +27,9 @@ def summarize(filename):
     nfail = 0
     with open(filename) as f:
         results = json.load(f)
+    # for bench version 2
+    if type(results) != list:
+        results = results["result"]
     for r in results:
         if r["result"] == "valid":
             nvalid += 1

@@ -16,4 +16,4 @@ class Eldarica(Benchmarker):
         return '/home/katsura/github.com/moratorium08/hopdr/hopdr/benchmark'
 
 
-do_bench(Hoice())
+do_bench(Eldarica())
