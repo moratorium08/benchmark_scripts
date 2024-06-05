@@ -1,6 +1,6 @@
 #!/bin/sh
 
-if [ "$#" -le 3 ]; then
+if [ "$#" -le 2 ]; then
   echo "[Usage] $0 <solver_name> <n_threads> <timeout>"
   exit 1
 fi
@@ -13,7 +13,7 @@ NTHREADS=$2
 TIMEOUT=$3
 
 echo "Target: $prefix"
-echo "N Threads: $NTHRADS"
+echo "N Threads: $NTHREADS"
 echo "Timeout: $TIMEOUT"
 
 current_date=$(date +"%Y-%m-%d-%H")
