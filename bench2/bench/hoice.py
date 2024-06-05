@@ -5,7 +5,7 @@ class Hoice(Benchmarker):
         return 'cargo build --release'
     
     def gen_cmd(self, file: str):
-        return f'./target/release/hoice {file}'
+        return f'../target/release/hoice {file}'
       
     def parse_stdout(self, stdout):
       result_data = dict()

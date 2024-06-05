@@ -22,6 +22,9 @@ def main():
     filename = files[0]
     with open(filename, 'r') as f:
         data = json.load(f)
+    # version 2
+    if type(data) == dict:
+        data = data["result"]
 
     ret = ""
     ca = 0

@@ -5,6 +5,7 @@ import subprocess
 import json
 import time
 import datetime
+import threading
 from abc import ABC, abstractmethod
 
 TIMEOUT = 10
@@ -69,11 +70,22 @@ class Benchmarker(ABC):
     def stat(self, results):
         pass
 
+    def allow_parallel(self):
+        return True
+
+    def dump_meta(self, cfg):
+        data = dict()
+        data['timeout'] = cfg.timeout
+        data['list'] = cfg.list
+        data['basedir'] = cfg.basedir
+        return data
+
 
 class Executor:
-    def __init__(self, bench: Benchmarker, cfg: Config):
+    def __init__(self, bench: Benchmarker, cfg: Config, tasks: list):
         self.bench = bench
         self.cfg = cfg
+        self.tasks = tasks
         self.results = []
 
     def gen_preexec_fn(self):
@@ -106,6 +118,7 @@ class Executor:
             stdout = stdout.decode('utf-8')
             result = self.bench.parse_stdout(stdout)
             result['time'] = t
+            result['ok'] = True
         except subprocess.TimeoutExpired:
             result = {'ok': False, 'error': 'timeout'}
             result['time'] = self.cfg.timeout
@@ -120,13 +133,22 @@ class Executor:
             self.bench.callback(file, result)
             self.results.append(result)
 
-    def save_json(self, filename: str):
-        with open(filename, "w") as f:
-            json.dump(self.results, f)
-
     def stat(self):
         pass
+    
+    def start(self):
+        for file in self.tasks:
+            self.handle(os.path.join(self.cfg.basedir, self.cfg.base, file))
+        self.stat()
 
+def run_par(executor: Executor):
+    executor.start()
+
+def save_json(filename: str, meta: dict, results: list):
+    data = meta
+    data["result"] = results
+    with open(filename, "w") as f:
+        json.dump(data, f)
 
 def do_bench(bench: Benchmarker):
     """
@@ -153,6 +175,10 @@ def do_bench(bench: Benchmarker):
     parser.add_argument("--timeout", help="timeout", default=TIMEOUT, type=int)
     parser.add_argument('--json', help="set filename in which results will be saved", default=default_json_file)
     parser.add_argument("--basedir", help="base directory", default=bench.base_dir())
+
+    if bench.allow_parallel():
+        parser.add_argument("--n-threads", help="Number of parallel execution", default=1, type=int)
+
     parser = bench.cli_arg(parser)
     args = parser.parse_args()
 
@@ -166,14 +192,34 @@ def do_bench(bench: Benchmarker):
     cfg.list = args.list
     cfg = bench.fix_cfg(cfg, args)
 
-    executor = Executor(bench, cfg)
+    if bench.allow_parallel():
+        assert(args.n_threads > 0 and args.n_threads < 1024)
+        n_par = args.n_threads
+    else:
+        n_par = 1
 
-    out, _ = executor.run(bench.pre_cmd(), timeout=1000)
-    print(out.decode('utf-8'))
     with open(os.path.join(cfg.basedir, 'lists', cfg.list)) as f:
         files = f.read().strip('\n').split('\n')
-    for file in files:
-        executor.handle(os.path.join(cfg.basedir, cfg.base, file))
-    bench.stat(executor.results)
-    if cfg.json is not None:
-        executor.save_json(cfg.json)
+    tasks = [[] for i in range(n_par)]
+    for i, f in enumerate(files):
+        tasks[i % n_par].append(f)
+
+    executors = []
+    for i in range(n_par):
+        executors.append(Executor(bench, cfg, tasks[i]))
+    
+    out, _ = executors[0].run(bench.pre_cmd(), timeout=1000)
+    print(out.decode('utf-8'))
+
+    threads = [threading.Thread(target=run_par, args=(e,)) for e in executors]
+    for t in threads:
+        t.start()
+    
+    for t in threads:
+        t.join()
+
+    results = []
+    for e in executors:
+        results.extend(e.results)
+    save_json(cfg.json, bench.dump_meta(cfg), results)
+    print('saved: ', cfg.json)
