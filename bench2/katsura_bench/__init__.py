@@ -167,7 +167,7 @@ def do_bench(bench: Benchmarker):
     ```
     """
     now = datetime.datetime.now()
-    default_json_file = now.strftime("%Y-%m-%d-%H%M") + ".json"
+    default_json_file = "results/" + now.strftime("%Y-%m-%d-%H%M") + ".json"
 
 
     parser = argparse.ArgumentParser()
@@ -175,6 +175,7 @@ def do_bench(bench: Benchmarker):
     parser.add_argument("--timeout", help="timeout", default=TIMEOUT, type=int)
     parser.add_argument('--json', help="set filename in which results will be saved", default=default_json_file)
     parser.add_argument("--basedir", help="base directory", default=bench.base_dir())
+    parser.add_argument("--test-config", help="run a single instance to verify the configuration setup", action="store_true")
 
     if bench.allow_parallel():
         parser.add_argument("--n-threads", help="Number of parallel execution", default=1, type=int)
@@ -192,7 +193,11 @@ def do_bench(bench: Benchmarker):
     cfg.list = args.list
     cfg = bench.fix_cfg(cfg, args)
 
-    if bench.allow_parallel():
+    d = os.path.dirname(cfg.json)
+    if not os.path.exists(d):
+        os.makedirs(d)
+
+    if bench.allow_parallel() and not args.test_config:
         assert(args.n_threads > 0 and args.n_threads < 1024)
         n_par = args.n_threads
     else:
@@ -200,6 +205,10 @@ def do_bench(bench: Benchmarker):
 
     with open(os.path.join(cfg.basedir, 'lists', cfg.list)) as f:
         files = f.read().strip('\n').split('\n')
+
+    if args.test_config:
+        files = files[:1]
+
     tasks = [[] for i in range(n_par)]
     for i, f in enumerate(files):
         tasks[i % n_par].append(f)
