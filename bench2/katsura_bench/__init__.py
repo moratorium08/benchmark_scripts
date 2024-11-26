@@ -1,5 +1,6 @@
 import argparse
 import os
+import sys
 import signal
 import subprocess
 import json
@@ -78,6 +79,9 @@ class Benchmarker(ABC):
         data['timeout'] = cfg.timeout
         data['list'] = cfg.list
         data['basedir'] = cfg.basedir
+        data['cmdline'] = cfg.cmdline
+        data['cwd'] = cfg.cwd
+        data['env'] = cfg.orig_env
         return data
 
 
@@ -191,6 +195,9 @@ def do_bench(bench: Benchmarker):
     cfg.json = args.json
     cfg.basedir = args.basedir
     cfg.list = args.list
+    cfg.cmdline = " ".join(sys.argv)
+    cfg.cwd = os.getcwd()
+    cfg.orig_env = dict(os.environ)
     cfg = bench.fix_cfg(cfg, args)
 
     d = os.path.dirname(cfg.json)
