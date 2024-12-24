@@ -101,6 +101,7 @@ class Executor:
     def run(self, cmd: str, timeout: int=None):
         if timeout is None:
             timeout=self.cfg.timeout
+        cmd = f"ulimit -v {self.cfg.mem_limit} && " + cmd
         st = time.perf_counter()
         with subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, preexec_fn=self.gen_preexec_fn()) as p:
             try:
@@ -197,6 +198,7 @@ def do_bench(bench: Benchmarker):
     cfg.list = args.list
     cfg.cmdline = " ".join(sys.argv)
     cfg.cwd = os.getcwd()
+    cfg.mem_limit = 4194304
     cfg.orig_env = dict(os.environ)
     cfg = bench.fix_cfg(cfg, args)
 
