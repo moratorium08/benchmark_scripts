@@ -107,7 +107,8 @@ for file in $(find "$INPUTS" -name '*.smt2'); do
     mkdir -p "$outdir"
 
     # Run formatter and capture stdout+stderr
-    output=$(python3 "$FORMAT_SCRIPT" --skip_errors True --out_dir "$outdir" "$file" 2>&1)
+    output=$(python3 "$FORMAT_SCRIPT" --skip_errors True --out_dir "$outdir" "$file" 2>&1 || true)
+
 
     # Check if format.py failed or skipped this file
     if echo "$output" | grep -q "Skipping file"; then
