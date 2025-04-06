@@ -1,5 +1,6 @@
 import os
 import argparse
+import re
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
 bench_dir = os.path.join(script_dir, "../benchmark")
@@ -37,14 +38,31 @@ if filename is None:
     print("unknown file")
     os.exit(-1)
 
-lists = os.path.join(bench_dir, "lists")
-for dirname in os.listdir(lists):
-    if dirname == "all":
-        continue
-    d = os.path.join(lists, dirname)
-    with open(d, "r") as f:
-        s = f.read()
-    if filename in s:
-        print(dirname)
+def find_list():
+    lists = os.path.join(bench_dir, "lists")
+    for dirname in os.listdir(lists):
+        if dirname == "all":
+            continue
+        d = os.path.join(lists, dirname)
+        with open(d, "r") as f:
+            s = f.read()
+        if filename in s:
+            return dirname
+    return None
+
+listname = find_list()
+if listname is None:
+    listname = "list not found"
+
+m = re.search(r'_(\d{3})(?=\.smt2$)', filename)
+number = m.group(1) if m else None
+
+filename = re.sub(r'_(\d{3})(?=\.smt2$)', '', filename)
+
+
+print(f"{listname}, {filename}, {number}")
+
+
+
 
 
