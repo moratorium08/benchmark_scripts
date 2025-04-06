@@ -10,7 +10,7 @@ def ds_iden(x):
     return '/'.join(l[-2:])
 
 def cmpkey(x):
-    return (ds_iden(x["file"]).split("/")[0], x["size"])
+    return (ds_iden(x["file"]).split("/")[0], x["size"], ds_iden(x["file"]).split("/")[-1])
 
 def main():
     files = sys.argv[1:]

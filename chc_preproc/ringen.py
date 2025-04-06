@@ -2,7 +2,7 @@ import re
 import sys
 
 def conv(expression: str) -> str:
-    converted_expression = re.sub(r'\(declare-fun\s+\|(\w+)\|', r'(declare-fun \1', expression)
+    converted_expression = re.sub(r'\(declare-fun\s+\|(([^|]+))\|', r'(declare-fun \1', expression)
     return converted_expression
 
 if __name__ == '__main__':
@@ -21,13 +21,12 @@ if __name__ == '__main__':
     with open(output_file, 'w') as f:
         f.write(converted_content)
 
-'''
 s_expression = """
 (set-logic HORN)
 
 (declare-datatypes ((Nat_0 0)) (((Z_0 ) (S_0  (projS_0 Nat_0)))))
 
-(declare-fun   |diseqNat_0| ( Nat_0 Nat_0 ) Bool)
+(declare-fun   |diseq_%Nat_0| ( Nat_0 Nat_0 ) Bool)
 (declare-fun\t
 
 
@@ -55,6 +54,5 @@ s_expression = """
 )
 """
 
-converted_expression = conv(s_expression)
-print(converted_expression)
-'''
+# converted_expression = conv(s_expression)
+# print(converted_expression)
