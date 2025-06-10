@@ -2,6 +2,8 @@
 import os
 import shutil
 
+DIR = "25-adt-chc-comp"
+
 def process_smt2_files(source_sub_dirs, destination_dir, base_directory):
     """
     Recursively searches specified directories, copies and renames .smt2 files,
@@ -47,7 +49,7 @@ def write_lists_file(file_list, output_file):
     try:
         with open(output_file, 'w') as f:
             for file_path in file_list:
-                f.write(f"{os.path.basename(file_path)}\n")
+                f.write(f"{DIR}/{os.path.basename(file_path)}\n")
         print(f"File list written to '{output_file}'.")
     except Exception as e:
         print(f"Error writing file list: {e}")
@@ -66,7 +68,7 @@ if __name__ == "__main__":
     ]
     
     # Destination directory for the copied files
-    destination_directory = "inputs/25-adt-chc-comp"
+    destination_directory = f"inputs/{DIR}"
     
     # Output file for the list of copied file names
     output_list_file = "lists/25-adt-chccomp"

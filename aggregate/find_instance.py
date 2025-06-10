@@ -40,6 +40,7 @@ if filename is None:
 
 def find_list():
     lists = os.path.join(bench_dir, "lists")
+    res = []
     for dirname in os.listdir(lists):
         if dirname == "all":
             continue
@@ -47,22 +48,17 @@ def find_list():
         with open(d, "r") as f:
             s = f.read()
         if filename in s:
-            return dirname
-    return None
+            res.append(dirname)
+    return res
 
-listname = find_list()
-if listname is None:
-    listname = "list not found"
+listnames = find_list()
+if listnames is None:
+    listnames = ["list not found"]
 
 m = re.search(r'_(\d{3})(?=\.smt2$)', filename)
 number = m.group(1) if m else None
 
 filename = re.sub(r'_(\d{3})(?=\.smt2$)', '', filename)
 
-
-print(f"{listname}, {filename}, {number}")
-
-
-
-
-
+for listname in listnames:
+  print(f"{listname}, {filename}, {number}")
