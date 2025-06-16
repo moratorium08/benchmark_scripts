@@ -1,9 +1,10 @@
 import os
+import sys
 import argparse
-import re
+import difflib
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
-bench_dir = os.path.join(script_dir, "../benchmark")
+bench_dir = os.path.join(script_dir, "../benchmark/inputs/25-adt-chc-comp/")
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--benchmark', nargs='?', default=bench_dir,
@@ -14,51 +15,42 @@ parser.add_argument('filename', metavar='filename',
 args = parser.parse_args()
 
 with open(args.filename, "r") as f:
-  target = f.read()
+    target = f.readlines()
 
+#inputs = os.path.join(bench_dir, "inputs")
+inputs = bench_dir
 
-inputs = os.path.join(bench_dir, "inputs")
+min_diff = None
+closest_files = []
 
-found = False
-def find_file():
-    for root, _, files in os.walk(inputs):
-        for fname in files:
-            path = os.path.join(root, fname)
-            try:
-                with open(path, "r") as f:
-                    content = f.read()
-                if content == target:
-                    return os.path.relpath(path, inputs)
-            except Exception as e:
-                print(f"Error reading {path}: {e}")
-    return None
+def diff_line_count(a, b):
+    """Compute the number of differing lines using difflib"""
+    diff = list(difflib.unified_diff(a, b))
+    return sum(1 for line in diff if line.startswith('+ ') or line.startswith('- '))
 
-filename = find_file()
-if filename is None:
+for root, _, files in os.walk(inputs):
+    for fname in files:
+        path = os.path.join(root, fname)
+        try:
+            with open(path, "r") as f:
+                content = f.readlines()
+
+            diff_count = diff_line_count(target, content)
+
+            if min_diff is None or diff_count < min_diff:
+                min_diff = diff_count
+                closest_files = [os.path.relpath(path, inputs)]
+            elif diff_count == min_diff:
+                closest_files.append(os.path.relpath(path, inputs))
+
+        except Exception as e:
+            print(f"Error reading {path}: {e}", file=sys.stderr)
+
+if not closest_files:
     print("unknown file")
-    os.exit(-1)
+    sys.exit(-1)
 
-def find_list():
-    lists = os.path.join(bench_dir, "lists")
-    res = []
-    for dirname in os.listdir(lists):
-        if dirname == "all":
-            continue
-        d = os.path.join(lists, dirname)
-        with open(d, "r") as f:
-            s = f.read()
-        if filename in s:
-            res.append(dirname)
-    return res
+print("Most similar file(s):")
+for fname in closest_files:
+    print(fname)
 
-listnames = find_list()
-if listnames is None:
-    listnames = ["list not found"]
-
-m = re.search(r'_(\d{3})(?=\.smt2$)', filename)
-number = m.group(1) if m else None
-
-filename = re.sub(r'_(\d{3})(?=\.smt2$)', '', filename)
-
-for listname in listnames:
-  print(f"{listname}, {filename}, {number}")
